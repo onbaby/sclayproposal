@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Building2, MessageSquare, ListChecks, Calendar, DollarSign } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Building2, MessageSquare, ListChecks, Calendar, DollarSign, User, Phone, Mail } from "lucide-react"
 import { format, parseISO } from "date-fns"
 
 interface EditProposalFormProps {
@@ -63,50 +64,45 @@ export function EditProposalForm({ proposal, type, onSuccess, onCancel }: EditPr
     success: false,
   })
 
-  // Form state for onboarding
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    type === "onboarding" && proposal.project_start_date ? parseISO(proposal.project_start_date) : undefined,
+  // Form state for onboarding dates
+  const [startDate, setStartDate] = useState<string>(
+    type === "onboarding" && proposal.project_start_date ? proposal.project_start_date : "",
   )
-  const [deliveryDate, setDeliveryDate] = useState<Date | undefined>(
-    type === "onboarding" && proposal.estimated_delivery_date ? parseISO(proposal.estimated_delivery_date) : undefined,
+  const [deliveryDate, setDeliveryDate] = useState<string>(
+    type === "onboarding" && proposal.estimated_delivery_date ? proposal.estimated_delivery_date : "",
   )
+
+  // Form state for services
   const [selectedServices, setSelectedServices] = useState<string[]>(
     type === "onboarding" ? proposal.services_offered || [] : proposal.prospect_services_interested || [],
   )
 
   // Form state for prospects
-  const [selectedBusinessType, setSelectedBusinessType] = useState<string | undefined>(
-    type === "prospect" ? proposal.prospect_business_type : undefined,
+  const [selectedBusinessType, setSelectedBusinessType] = useState<string>(
+    type === "prospect" ? proposal.prospect_business_type || "" : "",
   )
-  const [selectedFollowUpType, setSelectedFollowUpType] = useState<string | undefined>(
-    type === "prospect" ? proposal.prospect_follow_up_type : undefined,
+  const [selectedBudgetFeel, setSelectedBudgetFeel] = useState<string>(
+    type === "prospect" ? proposal.prospect_budget_feel || "" : "",
   )
-  const [followUpCallDate, setFollowUpCallDate] = useState<Date | undefined>(
-    type === "prospect" && proposal.prospect_follow_up_call_date
-      ? parseISO(proposal.prospect_follow_up_call_date)
-      : undefined,
+  const [selectedFollowUpType, setSelectedFollowUpType] = useState<string>(
+    type === "prospect" ? proposal.prospect_follow_up_type || "" : "",
+  )
+  const [followUpCallDate, setFollowUpCallDate] = useState<string>(
+    type === "prospect" && proposal.prospect_follow_up_call_date ? proposal.prospect_follow_up_call_date : "",
   )
 
-  // Split name for prospects (if needed)
+  // Form state for onboarding payment terms
+  const [selectedPaymentTerms, setSelectedPaymentTerms] = useState<string>(
+    type === "onboarding" ? proposal.payment_terms || "" : "",
+  )
+
+  // Split name for prospects
   const [firstName, setFirstName] = useState<string>(
     type === "prospect" ? proposal.prospect_first_name || "" : ""
   )
   const [lastName, setLastName] = useState<string>(
     type === "prospect" ? proposal.prospect_last_name || "" : ""
   )
-
-  // Initialize first and last name from contact name if they don't exist
-  useEffect(() => {
-    if (type === "prospect" && !proposal.prospect_first_name && !proposal.prospect_last_name && proposal.prospect_contact_name) {
-      const nameParts = proposal.prospect_contact_name.split(" ")
-      if (nameParts.length >= 2) {
-        setFirstName(nameParts[0])
-        setLastName(nameParts.slice(1).join(" "))
-      } else {
-        setFirstName(proposal.prospect_contact_name)
-      }
-    }
-  }, [type, proposal])
 
   const currentState = type === "onboarding" ? editOnboardingState : editProspectState
   const currentAction = type === "onboarding" ? editOnboardingAction : editProspectAction
@@ -150,16 +146,30 @@ export function EditProposalForm({ proposal, type, onSuccess, onCancel }: EditPr
     // Handle dates for onboarding
     if (type === "onboarding") {
       if (startDate) {
-        formData.set("projectStartDate", format(startDate, "yyyy-MM-dd"))
+        formData.set("projectStartDate", startDate)
       }
       if (deliveryDate) {
-        formData.set("estimatedDeliveryDate", format(deliveryDate, "yyyy-MM-dd"))
+        formData.set("estimatedDeliveryDate", deliveryDate)
+      }
+      if (selectedPaymentTerms) {
+        formData.set("paymentTerms", selectedPaymentTerms)
       }
     }
 
-    // Handle follow-up call date for prospects
-    if (type === "prospect" && followUpCallDate) {
-      formData.set("prospectFollowUpCallDate", format(followUpCallDate, "yyyy-MM-dd"))
+    // Handle prospect-specific fields
+    if (type === "prospect") {
+      if (selectedBusinessType) {
+        formData.set("prospectBusinessType", selectedBusinessType)
+      }
+      if (selectedBudgetFeel) {
+        formData.set("prospectBudgetFeel", selectedBudgetFeel)
+      }
+      if (selectedFollowUpType) {
+        formData.set("prospectFollowUpType", selectedFollowUpType)
+      }
+      if (followUpCallDate) {
+        formData.set("prospectFollowUpCallDate", followUpCallDate)
+      }
     }
 
     startTransition(() => {
@@ -297,22 +307,21 @@ export function EditProposalForm({ proposal, type, onSuccess, onCancel }: EditPr
         <Card className="bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center text-lg text-sclayGreen-DEFAULT">
-              <DollarSign className="mr-2 h-5 w-5" /> Project Details
+              <DollarSign className="mr-2 h-5 w-5" /> Project Financial Details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="projectValue">Project Value ($)</Label>
+                <Label htmlFor="oneTimeFee">One-Time Fee ($)</Label>
                 <Input
-                  id="projectValue"
-                  name="projectValue"
+                  id="oneTimeFee"
+                  name="oneTimeFee"
                   type="number"
-                  defaultValue={proposal.project_value}
-                  required
+                  defaultValue={proposal.one_time_fee || ""}
                   className="mt-1 bg-input"
                 />
-                {getError("projectValue")}
+                {getError("oneTimeFee")}
               </div>
               <div>
                 <Label htmlFor="monthlyRetainer">Monthly Retainer ($)</Label>
@@ -325,6 +334,141 @@ export function EditProposalForm({ proposal, type, onSuccess, onCancel }: EditPr
                 />
                 {getError("monthlyRetainer")}
               </div>
+            </div>
+            <div>
+              <Label htmlFor="performanceBased">Performance Based</Label>
+              <Textarea
+                id="performanceBased"
+                name="performanceBased"
+                defaultValue={proposal.performance_based || ""}
+                className="mt-1 bg-input min-h-[80px]"
+                placeholder="Describe any performance-based compensation..."
+              />
+              {getError("performanceBased")}
+            </div>
+            <div>
+              <Label htmlFor="paymentTerms">Payment Terms</Label>
+              <Select value={selectedPaymentTerms} onValueChange={setSelectedPaymentTerms}>
+                <SelectTrigger className="mt-1 bg-input">
+                  <SelectValue placeholder="Select payment terms" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentTermsOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.label}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {getError("paymentTerms")}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-sclayGreen-DEFAULT">
+              <Calendar className="mr-2 h-5 w-5" /> Project Timeline
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="projectStartDate">Project Start Date</Label>
+                <Input
+                  id="projectStartDate"
+                  name="projectStartDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                  className="mt-1 bg-input"
+                />
+                {getError("projectStartDate")}
+              </div>
+              <div>
+                <Label htmlFor="estimatedDeliveryDate">Estimated Delivery Date</Label>
+                <Input
+                  id="estimatedDeliveryDate"
+                  name="estimatedDeliveryDate"
+                  type="date"
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  required
+                  className="mt-1 bg-input"
+                />
+                {getError("estimatedDeliveryDate")}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-sclayGreen-DEFAULT">
+              <User className="mr-2 h-5 w-5" /> Sclay AI Contact Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="yourName">Your Name</Label>
+                <Input
+                  id="yourName"
+                  name="yourName"
+                  defaultValue={proposal.your_name}
+                  required
+                  className="mt-1 bg-input"
+                />
+                {getError("yourName")}
+              </div>
+              <div>
+                <Label htmlFor="sclayEmail">Sclay Email</Label>
+                <Input
+                  id="sclayEmail"
+                  name="sclayEmail"
+                  type="email"
+                  defaultValue={proposal.sclay_email}
+                  required
+                  className="mt-1 bg-input"
+                />
+                {getError("sclayEmail")}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="yourWebsite">Your Website</Label>
+                <Input
+                  id="yourWebsite"
+                  name="yourWebsite"
+                  type="url"
+                  defaultValue={proposal.your_website || ""}
+                  className="mt-1 bg-input"
+                />
+                {getError("yourWebsite")}
+              </div>
+              <div>
+                <Label htmlFor="logoUrl">Logo URL</Label>
+                <Input
+                  id="logoUrl"
+                  name="logoUrl"
+                  type="url"
+                  defaultValue={proposal.logo_url || ""}
+                  className="mt-1 bg-input"
+                />
+                {getError("logoUrl")}
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="socialCalendlyLink">Social/Calendly Link</Label>
+              <Input
+                id="socialCalendlyLink"
+                name="socialCalendlyLink"
+                type="url"
+                defaultValue={proposal.social_calendly_link || ""}
+                className="mt-1 bg-input"
+              />
+              {getError("socialCalendlyLink")}
             </div>
           </CardContent>
         </Card>
@@ -357,7 +501,7 @@ export function EditProposalForm({ proposal, type, onSuccess, onCancel }: EditPr
       <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg text-sclayGreen-DEFAULT">
-            <Building2 className="mr-2 h-5 w-5" /> Prospect Details
+            <User className="mr-2 h-5 w-5" /> Contact Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -387,6 +531,42 @@ export function EditProposalForm({ proposal, type, onSuccess, onCancel }: EditPr
               {getError("prospectLastName")}
             </div>
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="prospectPhone">Phone</Label>
+              <Input
+                id="prospectPhone"
+                name="prospectPhone"
+                type="tel"
+                defaultValue={proposal.prospect_phone}
+                required
+                className="mt-1 bg-input"
+              />
+              {getError("prospectPhone")}
+            </div>
+            <div>
+              <Label htmlFor="prospectEmail">Email</Label>
+              <Input
+                id="prospectEmail"
+                name="prospectEmail"
+                type="email"
+                defaultValue={proposal.prospect_email}
+                required
+                className="mt-1 bg-input"
+              />
+              {getError("prospectEmail")}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg text-sclayGreen-DEFAULT">
+            <Building2 className="mr-2 h-5 w-5" /> Business Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div>
             <Label htmlFor="prospectBusinessName">Business Name</Label>
             <Input
@@ -397,6 +577,155 @@ export function EditProposalForm({ proposal, type, onSuccess, onCancel }: EditPr
               className="mt-1 bg-input"
             />
             {getError("prospectBusinessName")}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="prospectCityState">City/State</Label>
+              <Input
+                id="prospectCityState"
+                name="prospectCityState"
+                defaultValue={proposal.prospect_city_state}
+                required
+                className="mt-1 bg-input"
+              />
+              {getError("prospectCityState")}
+            </div>
+            <div>
+              <Label htmlFor="prospectBusinessType">Business Type</Label>
+              <Select value={selectedBusinessType} onValueChange={setSelectedBusinessType}>
+                <SelectTrigger className="mt-1 bg-input">
+                  <SelectValue placeholder="Select business type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {businessTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {getError("prospectBusinessType")}
+            </div>
+          </div>
+          {selectedBusinessType === "Other" && (
+            <div>
+              <Label htmlFor="otherBusinessType">Specify Other Business Type</Label>
+              <Input
+                id="otherBusinessType"
+                name="otherBusinessType"
+                defaultValue={proposal.other_business_type || ""}
+                className="mt-1 bg-input"
+              />
+              {getError("otherBusinessType")}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg text-sclayGreen-DEFAULT">
+            <MessageSquare className="mr-2 h-5 w-5" /> Pain Points & Services
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="prospectPainPoint">Pain Point</Label>
+            <Textarea
+              id="prospectPainPoint"
+              name="prospectPainPoint"
+              defaultValue={proposal.prospect_pain_point}
+              required
+              className="min-h-[100px] bg-input"
+            />
+            {getError("prospectPainPoint")}
+          </div>
+          <div>
+            <Label>Services Interested In</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+              {prospectServices.map((service) => (
+                <div key={service.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={service.id}
+                    checked={selectedServices.includes(service.label)}
+                    onChange={(e) => handleServiceChange(e.target.checked, service.label)}
+                    className="rounded border-gray-300"
+                  />
+                  <label htmlFor={service.id} className="text-sm">
+                    {service.label}
+                  </label>
+                </div>
+              ))}
+            </div>
+            {getError("prospectServicesInterested")}
+          </div>
+          <div>
+            <Label htmlFor="prospectBudgetFeel">Budget Feel</Label>
+            <Select value={selectedBudgetFeel} onValueChange={setSelectedBudgetFeel}>
+              <SelectTrigger className="mt-1 bg-input">
+                <SelectValue placeholder="Select budget feel" />
+              </SelectTrigger>
+              <SelectContent>
+                {budgetFeels.map((feel) => (
+                  <SelectItem key={feel} value={feel}>
+                    {feel}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {getError("prospectBudgetFeel")}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg text-sclayGreen-DEFAULT">
+            <Calendar className="mr-2 h-5 w-5" /> Follow-Up Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="prospectFollowUpType">Follow-Up Type</Label>
+            <Select value={selectedFollowUpType} onValueChange={setSelectedFollowUpType}>
+              <SelectTrigger className="mt-1 bg-input">
+                <SelectValue placeholder="Select follow-up type" />
+              </SelectTrigger>
+              <SelectContent>
+                {followUpTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {getError("prospectFollowUpType")}
+          </div>
+          {selectedFollowUpType === "Follow-up call" && (
+            <div>
+              <Label htmlFor="prospectFollowUpCallDate">Follow-Up Call Date</Label>
+              <Input
+                id="prospectFollowUpCallDate"
+                name="prospectFollowUpCallDate"
+                type="date"
+                value={followUpCallDate}
+                onChange={(e) => setFollowUpCallDate(e.target.value)}
+                className="mt-1 bg-input"
+              />
+              {getError("prospectFollowUpCallDate")}
+            </div>
+          )}
+          <div>
+            <Label htmlFor="prospectCallNotes">Call Notes</Label>
+            <Textarea
+              id="prospectCallNotes"
+              name="prospectCallNotes"
+              defaultValue={proposal.prospect_call_notes || ""}
+              className="min-h-[100px] bg-input"
+              placeholder="Any additional notes from the call..."
+            />
+            {getError("prospectCallNotes")}
           </div>
         </CardContent>
       </Card>

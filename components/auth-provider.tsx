@@ -30,17 +30,25 @@ export const useAuth = () => {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [initialCheckComplete, setInitialCheckComplete] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      setLoading(false)
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        setUser(session?.user ?? null)
+      } catch (error) {
+        console.error("Error getting session:", error)
+        setUser(null)
+      } finally {
+        setLoading(false)
+        setInitialCheckComplete(true)
+      }
     }
 
     getInitialSession()
@@ -52,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null)
       setLoading(false)
 
-      if (event === "SIGNED_IN") {
+      if (event === "SIGNED_IN" && pathname === "/login") {
         router.push("/")
       } else if (event === "SIGNED_OUT") {
         router.push("/login")
@@ -62,12 +70,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [router])
 
-  // Redirect to login if not authenticated (except on login page)
+  // Only redirect to login after initial check is complete and we're sure there's no user
   useEffect(() => {
-    if (!loading && !user && pathname !== "/login") {
-      router.push("/login")
+    if (initialCheckComplete && !loading && !user && pathname !== "/login") {
+      // Add a small delay to prevent race conditions
+      const timeoutId = setTimeout(() => {
+        router.push("/login")
+      }, 100)
+      
+      return () => clearTimeout(timeoutId)
     }
-  }, [user, loading, pathname, router])
+  }, [user, loading, pathname, router, initialCheckComplete])
 
   const signOut = async () => {
     await supabase.auth.signOut()

@@ -171,6 +171,7 @@ export function ProspectsForm() {
             <CardTitle className="flex items-center text-2xl text-sclayGreen-DEFAULT">
               <Building2 className="mr-2 h-6 w-6" /> Business & Contact
             </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Alex pls lock in</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
