@@ -6,6 +6,8 @@ import { supabaseAdmin } from "@/lib/supabase/server"
 // --- Onboarding Proposal Schema and Action ---
 const proposalSchema = z.object({
   clientName: z.string().min(1, "Client name is required"),
+  clientEmail: z.string().email("Invalid email address"),
+  clientPhone: z.string().min(1, "Client phone is required"),
   businessName: z.string().min(1, "Business name is required"),
   industryNiche: z.string().min(1, "Industry/Niche is required"),
   location: z.string().min(1, "Location is required"),
@@ -37,6 +39,8 @@ export async function submitProposal(prevState: ProposalFormState, formData: For
 
   const rawFormData = {
     clientName: formData.get("clientName"),
+    clientEmail: formData.get("clientEmail"),
+    clientPhone: formData.get("clientPhone"),
     businessName: formData.get("businessName"),
     industryNiche: formData.get("industryNiche"),
     location: formData.get("location"),
@@ -71,6 +75,8 @@ export async function submitProposal(prevState: ProposalFormState, formData: For
   // Prepare data for Supabase (map to snake_case, parse numeric fields)
   const supabaseData = {
     client_name: dataFromZod.clientName,
+    client_email: dataFromZod.clientEmail,
+    client_phone: dataFromZod.clientPhone,
     business_name: dataFromZod.businessName,
     industry_niche: dataFromZod.industryNiche,
     location: dataFromZod.location,
@@ -400,6 +406,8 @@ export async function editOnboardingProposal(
 
   const rawFormData = {
     clientName: formData.get("clientName"),
+    clientEmail: formData.get("clientEmail"),
+    clientPhone: formData.get("clientPhone"),
     businessName: formData.get("businessName"),
     industryNiche: formData.get("industryNiche"),
     location: formData.get("location"),
@@ -434,6 +442,8 @@ export async function editOnboardingProposal(
   // Prepare data for Supabase (map to snake_case, parse numeric fields)
   const supabaseData = {
     client_name: dataFromZod.clientName,
+    client_email: dataFromZod.clientEmail,
+    client_phone: dataFromZod.clientPhone,
     business_name: dataFromZod.businessName,
     industry_niche: dataFromZod.industryNiche,
     location: dataFromZod.location,
@@ -570,5 +580,75 @@ export async function editProspectProposal(
       success: false,
       error: error.message,
     }
+  }
+}
+
+// --- Onboarding Form Schema and Action ---
+const onboardingSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  phone: z.string().min(1, "Phone number is required"),
+})
+
+export interface OnboardingFormState {
+  message: string
+  success: boolean
+  errors?: Record<string, string[]>
+  submittedData?: Record<string, any>
+}
+
+export async function submitOnboarding(prevState: OnboardingFormState, formData: FormData): Promise<OnboardingFormState> {
+  const webhookUrl = "https://hook.us2.make.com/yctumxqvh734ttd902rm1efnu9hpg36h"
+
+  const rawFormData = {
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+  }
+
+  const validatedFields = onboardingSchema.safeParse(rawFormData)
+
+  if (!validatedFields.success) {
+    return {
+      message: "Validation failed. Please check the form for errors.",
+      success: false,
+      errors: validatedFields.error.flatten().fieldErrors,
+    }
+  }
+
+  const dataFromZod = validatedFields.data
+
+  // Prepare data for Supabase
+  const supabaseData = {
+    email: dataFromZod.email,
+    phone: dataFromZod.phone,
+    status: "New", // Default status
+  }
+
+  try {
+    const webhookResponse = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formType: "onboarding", ...dataFromZod }),
+    })
+    if (!webhookResponse.ok) {
+      console.warn(`Webhook for onboarding responded with ${webhookResponse.status}`)
+    }
+  } catch (error: any) {
+    console.error(`Error sending onboarding data to webhook: ${error.message}`)
+  }
+
+  try {
+    const { error: supabaseError } = await supabaseAdmin.from("onboarding").insert(supabaseData)
+    if (supabaseError) {
+      console.error("Supabase error (Onboarding):", supabaseError)
+      return { message: `Error saving onboarding data to database: ${supabaseError.message}`, success: false }
+    }
+    return {
+      message: "Onboarding data submitted successfully!",
+      success: true,
+      submittedData: dataFromZod,
+    }
+  } catch (error: any) {
+    console.error(`Unexpected error during Supabase onboarding insert: ${error.message}`)
+    return { message: `Unexpected error saving onboarding data: ${error.message}`, success: false }
   }
 }

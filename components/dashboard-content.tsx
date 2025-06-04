@@ -41,10 +41,13 @@ import {
   Loader2,
   Trash2,
   Edit,
+  CheckSquare,
+  Square,
 } from "lucide-react"
 import { format, parseISO } from "date-fns" // parseISO for parsing date strings from Supabase
 import { useActionState } from "react" // Import useActionState for delete actions
 import { EditProposalForm } from "./edit-proposal-form"
+import { Checkbox } from "@/components/ui/checkbox"
 
 // Helper function to format contact name
 const formatContactName = (firstName: string, lastName?: string) => {
@@ -86,6 +89,10 @@ export function DashboardContent() {
   const [filterStatus, setFilterStatus] = useState<string>("all")
 
   const [isTransitionPending, startTransition] = useTransition()
+
+  // Selection state for bulk operations
+  const [selectedProposals, setSelectedProposals] = useState<Set<string>>(new Set())
+  const [selectAll, setSelectAll] = useState(false)
 
   // Edit state
   const [editingProposal, setEditingProposal] = useState<any>(null)
@@ -161,8 +168,60 @@ export function DashboardContent() {
   useEffect(() => {
     if (deleteOnboardingState.success || deleteProspectState.success) {
       fetchData()
+      // Clear selections after successful delete
+      setSelectedProposals(new Set())
+      setSelectAll(false)
     }
   }, [deleteOnboardingState.success, deleteProspectState.success])
+
+  // Clear selections when filters change
+  useEffect(() => {
+    setSelectedProposals(new Set())
+    setSelectAll(false)
+  }, [searchTerm, filterType, filterStatus])
+
+  // Selection handlers
+  const handleSelectProposal = (proposalId: string, checked: boolean) => {
+    const newSelected = new Set(selectedProposals)
+    if (checked) {
+      newSelected.add(proposalId)
+    } else {
+      newSelected.delete(proposalId)
+      setSelectAll(false)
+    }
+    setSelectedProposals(newSelected)
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredProposals.map(p => p.id))
+      setSelectedProposals(allIds)
+      setSelectAll(true)
+    } else {
+      setSelectedProposals(new Set())
+      setSelectAll(false)
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedProposals.size === 0) return
+
+    startTransition(() => {
+      selectedProposals.forEach(proposalId => {
+        const proposal = proposals.find(p => p.id === proposalId)
+        if (proposal) {
+          const formData = new FormData()
+          formData.append("proposalId", proposalId)
+          
+          if (proposal.type === "onboarding") {
+            deleteOnboardingAction(formData)
+          } else {
+            deleteProspectAction(formData)
+          }
+        }
+      })
+    })
+  }
 
   const handleDeleteProposal = (proposalId: string, proposalType: "onboarding" | "prospect") => {
     const formData = new FormData()
@@ -370,10 +429,65 @@ export function DashboardContent() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Bulk Actions Bar */}
+          {selectedProposals.size > 0 && (
+            <div className="mb-4 p-3 bg-muted/50 rounded-md flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {selectedProposals.size} proposal{selectedProposals.size !== 1 ? 's' : ''} selected
+              </span>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isOnboardingDeleting || isProspectDeleting || isTransitionPending}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Selected ({selectedProposals.size})
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-black border border-border">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-red-400 text-xl">⚠️ Delete Multiple Proposals</AlertDialogTitle>
+                    <AlertDialogDescription className="text-base mt-4">
+                      Are you absolutely sure you want to delete{" "}
+                      <strong className="text-white">{selectedProposals.size} proposal{selectedProposals.size !== 1 ? 's' : ''}</strong>?
+                      <br /><br />
+                      <span className="text-red-400">This action cannot be undone.</span>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="mt-6">
+                    <AlertDialogCancel className="bg-gray-800 hover:bg-gray-700">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleBulkDelete}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {isOnboardingDeleting || isProspectDeleting || isTransitionPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        `Yes, Delete ${selectedProposals.size} Proposal${selectedProposals.size !== 1 ? 's' : ''}`
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+
           <div className="rounded-md border border-border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectAll}
+                      onCheckedChange={handleSelectAll}
+                      className="data-[state=checked]:bg-sclayGreen-DEFAULT data-[state=checked]:text-sclayGreen-foreground border-sclayGreen-DEFAULT/50"
+                    />
+                  </TableHead>
                   <TableHead>Client/Contact</TableHead>
                   <TableHead>Business</TableHead>
                   <TableHead>Type</TableHead>
@@ -386,6 +500,13 @@ export function DashboardContent() {
               <TableBody>
                 {filteredProposals.map((proposal) => (
                   <TableRow key={proposal.id} className="hover:bg-muted/30">
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedProposals.has(proposal.id)}
+                        onCheckedChange={(checked) => handleSelectProposal(proposal.id, Boolean(checked))}
+                        className="data-[state=checked]:bg-sclayGreen-DEFAULT data-[state=checked]:text-sclayGreen-foreground border-sclayGreen-DEFAULT/50"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center">
                         <User className="mr-2 h-4 w-4 text-sclayGreen-DEFAULT" />
@@ -463,6 +584,14 @@ export function DashboardContent() {
                               {proposal.type === "onboarding" && (
                                 <>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                      <h4 className="font-semibold text-sm text-sclayGreen-DEFAULT">Client Email</h4>
+                                      <p className="text-sm">{proposal.rawData.client_email || "N/A"}</p>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold text-sm text-sclayGreen-DEFAULT">Client Phone</h4>
+                                      <p className="text-sm">{proposal.rawData.client_phone || "N/A"}</p>
+                                    </div>
                                     <div>
                                       <h4 className="font-semibold text-sm text-sclayGreen-DEFAULT">Industry/Niche</h4>
                                       <p className="text-sm">{proposal.rawData.industry_niche}</p>

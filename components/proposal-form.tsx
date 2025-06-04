@@ -31,6 +31,7 @@ import {
   Share2,
   Eraser,
   Loader2,
+  Phone,
 } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -66,16 +67,32 @@ export function ProposalForm() {
   const [displayMessage, setDisplayMessage] = useState<string>("")
   const [displayErrors, setDisplayErrors] = useState<Record<string, string[]> | undefined>(undefined)
 
+  // Phone formatting function
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digits
+    const phoneNumber = value.replace(/\D/g, '')
+    
+    // Format as (XXX) XXX-XXXX
+    if (phoneNumber.length <= 3) {
+      return phoneNumber
+    } else if (phoneNumber.length <= 6) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
+    } else {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
+    }
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value)
+    e.target.value = formatted
+  }
+
   useEffect(() => {
     // Update local display state based on actionState
     setDisplayMessage(actionState.message)
     setDisplayErrors(actionState.errors)
 
     if (actionState.success) {
-      formRef.current?.reset()
-      setStartDate(undefined)
-      setDeliveryDate(undefined)
-      setSelectedServices([]) // Reset selected services on success
       console.log("Submitted Data:", actionState.submittedData)
     }
   }, [actionState]) // Depend on actionState
@@ -160,6 +177,39 @@ export function ProposalForm() {
               className="mt-1 bg-input focus:ring-sclayGreen-DEFAULT"
             />
             {getError("clientName")}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="clientEmail" className="flex items-center">
+                <Mail className="mr-2 h-4 w-4 text-sclayGreen-DEFAULT" />
+                Client Email<span className="text-red-500 ml-1">*</span>
+              </Label>
+              <Input
+                id="clientEmail"
+                name="clientEmail"
+                type="email"
+                placeholder="e.g., john@example.com"
+                required
+                className="mt-1 bg-input focus:ring-sclayGreen-DEFAULT"
+              />
+              {getError("clientEmail")}
+            </div>
+            <div>
+              <Label htmlFor="clientPhone" className="flex items-center">
+                <Phone className="mr-2 h-4 w-4 text-sclayGreen-DEFAULT" />
+                Client Phone<span className="text-red-500 ml-1">*</span>
+              </Label>
+              <Input
+                id="clientPhone"
+                name="clientPhone"
+                type="tel"
+                placeholder="e.g., 555-123-4567"
+                required
+                className="mt-1 bg-input focus:ring-sclayGreen-DEFAULT"
+                onChange={handlePhoneChange}
+              />
+              {getError("clientPhone")}
+            </div>
           </div>
           <div>
             <Label htmlFor="businessName" className="flex items-center">

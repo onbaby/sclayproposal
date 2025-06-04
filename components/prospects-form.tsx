@@ -64,16 +64,36 @@ export function ProspectsForm() {
   const [displayMessage, setDisplayMessage] = useState<string>("")
   const [displayErrors, setDisplayErrors] = useState<Record<string, string[]> | undefined>(undefined)
 
+  // Phone formatting function
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digits
+    const phoneNumber = value.replace(/\D/g, '')
+    
+    // Format as (XXX) XXX-XXXX
+    if (phoneNumber.length <= 3) {
+      return phoneNumber
+    } else if (phoneNumber.length <= 6) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
+    } else {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
+    }
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value)
+    e.target.value = formatted
+  }
+
   useEffect(() => {
     setDisplayMessage(actionState.message)
     setDisplayErrors(actionState.errors)
 
     if (actionState.success) {
-      formRef.current?.reset()
+      // Remove form reset
       setSelectedBusinessType(undefined)
       setSelectedServices([])
-      setSelectedFollowUpType(undefined) // Reset follow-up type
-      setFollowUpCallDate(undefined) // Reset follow-up call date
+      setSelectedFollowUpType(undefined)
+      setFollowUpCallDate(undefined)
       console.log("Prospect Data Submitted:", actionState.submittedData)
     }
   }, [actionState])
@@ -230,6 +250,7 @@ export function ProspectsForm() {
                   placeholder="e.g., 555-123-4567"
                   required
                   className="mt-1 bg-input focus:ring-sclayGreen-DEFAULT"
+                  onChange={handlePhoneChange}
                 />
                 {getError("prospectPhone")}
               </div>
