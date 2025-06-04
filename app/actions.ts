@@ -573,3 +573,98 @@ export async function editProspectProposal(
     }
   }
 }
+
+// --- Update Status Actions ---
+export interface UpdateStatusState {
+  message: string
+  success: boolean
+  error?: string
+}
+
+export async function updateOnboardingStatus(
+  prevState: UpdateStatusState,
+  formData: FormData,
+): Promise<UpdateStatusState> {
+  const proposalId = formData.get("proposalId") as string
+  const status = formData.get("status") as string
+
+  if (!proposalId || !status) {
+    return {
+      message: "Proposal ID and status are required",
+      success: false,
+      error: "Missing required fields",
+    }
+  }
+
+  try {
+    const { error: supabaseError } = await supabaseAdmin
+      .from("proposals_onboarding")
+      .update({ status })
+      .eq("id", proposalId)
+
+    if (supabaseError) {
+      console.error("Supabase error updating onboarding status:", supabaseError)
+      return {
+        message: `Error updating onboarding status: ${supabaseError.message}`,
+        success: false,
+        error: supabaseError.message,
+      }
+    }
+
+    return {
+      message: "Onboarding proposal status updated successfully!",
+      success: true,
+    }
+  } catch (error: any) {
+    console.error("Unexpected error updating onboarding status:", error.message)
+    return {
+      message: `Unexpected error updating onboarding status: ${error.message}`,
+      success: false,
+      error: error.message,
+    }
+  }
+}
+
+export async function updateProspectStatus(
+  prevState: UpdateStatusState,
+  formData: FormData,
+): Promise<UpdateStatusState> {
+  const proposalId = formData.get("proposalId") as string
+  const status = formData.get("status") as string
+
+  if (!proposalId || !status) {
+    return {
+      message: "Proposal ID and status are required",
+      success: false,
+      error: "Missing required fields",
+    }
+  }
+
+  try {
+    const { error: supabaseError } = await supabaseAdmin
+      .from("proposals_prospects")
+      .update({ status })
+      .eq("id", proposalId)
+
+    if (supabaseError) {
+      console.error("Supabase error updating prospect status:", supabaseError)
+      return {
+        message: `Error updating prospect status: ${supabaseError.message}`,
+        success: false,
+        error: supabaseError.message,
+      }
+    }
+
+    return {
+      message: "Prospect proposal status updated successfully!",
+      success: true,
+    }
+  } catch (error: any) {
+    console.error("Unexpected error updating prospect status:", error.message)
+    return {
+      message: `Unexpected error updating prospect status: ${error.message}`,
+      success: false,
+      error: error.message,
+    }
+  }
+}
