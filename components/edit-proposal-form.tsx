@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, MessageSquare, ListChecks } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Building2, MessageSquare, ListChecks, Calendar, DollarSign } from "lucide-react"
 import { format, parseISO } from "date-fns"
 
 interface EditProposalFormProps {
@@ -209,6 +210,8 @@ export function EditProposalForm({ proposal, type, onSuccess, onCancel }: EditPr
                 />
                 {getError("businessName")}
               </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="industryNiche">Industry/Niche</Label>
                 <Input
@@ -267,4 +270,145 @@ export function EditProposalForm({ proposal, type, onSuccess, onCancel }: EditPr
         <Card className="bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center text-lg text-sclayGreen-DEFAULT">
-              <ListChecks className="mr-\
+              <ListChecks className="mr-2 h-5 w-5" /> Services Offered
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {services.map((service) => (
+                <div key={service.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={service.id}
+                    checked={selectedServices.includes(service.label)}
+                    onChange={(e) => handleServiceChange(e.target.checked, service.label)}
+                    className="rounded border-gray-300"
+                  />
+                  <label htmlFor={service.id} className="text-sm">
+                    {service.label}
+                  </label>
+                </div>
+              ))}
+            </div>
+            {getError("servicesOffered")}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-sclayGreen-DEFAULT">
+              <DollarSign className="mr-2 h-5 w-5" /> Project Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="projectValue">Project Value ($)</Label>
+                <Input
+                  id="projectValue"
+                  name="projectValue"
+                  type="number"
+                  defaultValue={proposal.project_value}
+                  required
+                  className="mt-1 bg-input"
+                />
+                {getError("projectValue")}
+              </div>
+              <div>
+                <Label htmlFor="monthlyRetainer">Monthly Retainer ($)</Label>
+                <Input
+                  id="monthlyRetainer"
+                  name="monthlyRetainer"
+                  type="number"
+                  defaultValue={proposal.monthly_retainer || ""}
+                  className="mt-1 bg-input"
+                />
+                {getError("monthlyRetainer")}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex space-x-3 pt-4">
+          <Button type="submit" disabled={isEditing} className="flex-1">
+            {isEditing ? "Saving..." : "Save Changes"}
+          </Button>
+          <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+            Cancel
+          </Button>
+        </div>
+      </form>
+    )
+  }
+
+  // Prospect form
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto">
+      {currentState.message && (
+        <div
+          className={`p-3 rounded-md text-sm ${
+            currentState.success ? "bg-sclayGreen-DEFAULT/20 text-sclayGreen-DEFAULT" : "bg-red-500/20 text-red-400"
+          }`}
+        >
+          {currentState.message}
+        </div>
+      )}
+
+      <Card className="bg-card/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg text-sclayGreen-DEFAULT">
+            <Building2 className="mr-2 h-5 w-5" /> Prospect Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="prospectFirstName">First Name</Label>
+              <Input
+                id="prospectFirstName"
+                name="prospectFirstName"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                className="mt-1 bg-input"
+              />
+              {getError("prospectFirstName")}
+            </div>
+            <div>
+              <Label htmlFor="prospectLastName">Last Name</Label>
+              <Input
+                id="prospectLastName"
+                name="prospectLastName"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+                className="mt-1 bg-input"
+              />
+              {getError("prospectLastName")}
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="prospectBusinessName">Business Name</Label>
+            <Input
+              id="prospectBusinessName"
+              name="prospectBusinessName"
+              defaultValue={proposal.prospect_business_name}
+              required
+              className="mt-1 bg-input"
+            />
+            {getError("prospectBusinessName")}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex space-x-3 pt-4">
+        <Button type="submit" disabled={isEditing} className="flex-1">
+          {isEditing ? "Saving..." : "Save Changes"}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+          Cancel
+        </Button>
+      </div>
+    </form>
+  )
+}

@@ -1,13 +1,19 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, ArrowLeft } from "lucide-react"
+import { LayoutDashboard, ArrowLeft, LogOut } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useAuth } from "@/components/auth-provider"
 
 export function Header() {
   const pathname = usePathname()
   const isDashboard = pathname === "/dashboard"
+  const { signOut, user } = useAuth()
+
+  const handleSignOut = async () => {
+    await signOut()
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -20,20 +26,28 @@ export function Header() {
         </div>
 
         <nav className="flex items-center space-x-4">
-          {isDashboard ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href="/" className="flex items-center space-x-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Forms</span>
-              </Link>
-            </Button>
-          ) : (
-            <Button asChild variant="outline" size="sm">
-              <Link href="/dashboard" className="flex items-center space-x-2">
-                <LayoutDashboard className="h-4 w-4" />
-                <span>Dashboard</span>
-              </Link>
-            </Button>
+          {user && (
+            <>
+              {isDashboard ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/" className="flex items-center space-x-2">
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back to Forms</span>
+                  </Link>
+                </Button>
+              ) : (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard" className="flex items-center space-x-2">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                </Button>
+              )}
+              <Button onClick={handleSignOut} variant="ghost" size="sm">
+                <LogOut className="h-4 w-4 mr-2" />
+                <span>Sign Out</span>
+              </Button>
+            </>
           )}
         </nav>
       </div>
